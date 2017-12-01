@@ -123,6 +123,7 @@
         <typeProvider3 implementation="fr.adrienbrault.idea.symfony2plugin.doctrine.ObjectManagerFindTypeProvider"/>
         <typeProvider3 implementation="fr.adrienbrault.idea.symfony2plugin.assistant.signature.MethodSignatureTypeProvider"/>
         <typeProvider3 implementation="fr.adrienbrault.idea.symfony2plugin.templating.variable.PhpTemplatingVariableTypeProvider"/>
+        <typeProvider3 implementation="fr.adrienbrault.idea.symfony2plugin.templating.helper.PhpTemplatingHelperTypeProvider"/>
 
         <!-- does not help yet. see WI-38953 -->
         <!--<predefinedVariableProvider implementation="fr.adrienbrault.idea.symfony2plugin.templating.variable.PhpTemplatingVariableProvider" />-->
@@ -218,8 +219,10 @@
         <completion.contributor language="PHP" implementationClass="fr.adrienbrault.idea.symfony2plugin.form.completion.FormCompletionContributor"/>
         <completion.contributor language="PHP" implementationClass="fr.adrienbrault.idea.symfony2plugin.doctrine.completion.DoctrineCompletionContributor"/>
 
+        <completion.contributor language="PHP" implementationClass="fr.adrienbrault.idea.symfony2plugin.templating.helper.PhpTemplatingHelperCompletionContributor"/>
+
         <!-- does not help yet. see WI-38953 -->
-        <!--<completion.contributor language="PHP" implementationClass="fr.adrienbrault.idea.symfony2plugin.templating.variable.PhpTemplatingVariableCompletionContributor"/>-->
+        <completion.contributor language="PHP" implementationClass="fr.adrienbrault.idea.symfony2plugin.templating.variable.PhpTemplatingVariableCompletionContributor"/>
 
         <fileBasedIndex implementation="fr.adrienbrault.idea.symfony2plugin.stubs.indexes.RoutesStubIndex"/>
         <fileBasedIndex implementation="fr.adrienbrault.idea.symfony2plugin.stubs.indexes.TwigExtendsStubIndex"/>

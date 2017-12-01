@@ -3,8 +3,6 @@ package fr.adrienbrault.idea.symfony2plugin.templating.util;
 import com.intellij.psi.PsiFile;
 import com.jetbrains.php.PhpIndex;
 import com.jetbrains.php.lang.psi.PhpFile;
-import com.jetbrains.php.lang.psi.elements.Variable;
-import com.jetbrains.php.lang.psi.elements.impl.VariableImpl;
 import com.jetbrains.php.lang.psi.resolve.types.PhpType;
 import org.jetbrains.annotations.NotNull;
 
@@ -23,7 +21,23 @@ final public class PhpTemplatingUtil {
     }};
 
     private static Map<String, String> VARIABLES_FRAMEWORK = new HashMap<String, String>() {{
+        put("view", SIGNATURE_RENDERER_FRAMEWORK);
         put("app", SIGNATURE_GLOBAL_VARS);
+    }};
+
+    private static Map<String, String> HELPERS = new HashMap<String, String>() {{
+        put("slots", "\\Symfony\\Component\\Templating\\Helper\\SlotsHelper");
+        put("request", "\\Symfony\\Bundle\\FrameworkBundle\\Templating\\Helper\\RequestHelper");
+        put("session", "\\Symfony\\Bundle\\FrameworkBundle\\Templating\\Helper\\SessionHelper");
+        put("router", "\\Symfony\\Bundle\\FrameworkBundle\\Templating\\Helper\\RouterHelper");
+        put("assets", "\\Symfony\\Bundle\\FrameworkBundle\\Templating\\Helper\\AssetsHelper");
+        put("actions", "\\Symfony\\Bundle\\FrameworkBundle\\Templating\\Helper\\ActionsHelper");
+        put("code", "\\Symfony\\Bundle\\FrameworkBundle\\Templating\\Helper\\CodeHelper");
+        put("translator", "\\Symfony\\Bundle\\FrameworkBundle\\Templating\\Helper\\TranslatorHelper");
+        put("form", "\\Symfony\\Bundle\\FrameworkBundle\\Templating\\Helper\\FormHelper");
+        put("stopwatch", "\\Symfony\\Bundle\\FrameworkBundle\\Templating\\Helper\\StopwatchHelper");
+        put("security", "\\Symfony\\Bundle\\SecurityBundle\\Templating\\Helper\\SecurityHelper");
+        put("logout_url", "\\Symfony\\Bundle\\SecurityBundle\\Templating\\Helper\\LogoutUrlHelper");
     }};
 
     public static boolean isPhpTemplate(@NotNull PsiFile file) {
@@ -40,6 +54,14 @@ final public class PhpTemplatingUtil {
         }
         // TODO: better decision which Renderer class is used (maybe user setting)
         return SIGNATURE_RENDERER_COMPONENT;
+    }
+
+    public static boolean isTypePhpEngine(@NotNull PhpType type, @NotNull PhpIndex phpIndex) {
+        return type.toString().contains(getPhpEngineClass(phpIndex));
+    }
+
+    public static Map<String, String> getHelpersMap() {
+        return HELPERS;
     }
 
     public static Map<String, String> getTemplateVariablesForFile(@NotNull PhpFile file) {
@@ -59,6 +81,22 @@ final public class PhpTemplatingUtil {
         for (Map.Entry<String, String> variable: variables.entrySet()) {
             if (variable.getKey().equals(variableName)) {
                 return variable.getValue();
+            }
+        }
+
+        return null;
+    }
+
+    public static String findSignatureForHelper(String helperName) {
+        if (helperName == null) {
+            return null;
+        }
+
+        // TODO: better get helpers from Service tags ("templating.helper") or calls to PhpEngine::set or HelperInterface implementations (weak)
+
+        for (Map.Entry<String, String> helper: HELPERS.entrySet()) {
+            if (helper.getKey().equals(helperName)) {
+                return helper.getValue();
             }
         }
 
