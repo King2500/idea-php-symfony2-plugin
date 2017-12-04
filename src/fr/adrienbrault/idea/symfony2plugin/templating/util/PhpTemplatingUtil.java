@@ -1,9 +1,14 @@
 package fr.adrienbrault.idea.symfony2plugin.templating.util;
 
+import com.intellij.patterns.ElementPattern;
+import com.intellij.patterns.PlatformPatterns;
+import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
 import com.jetbrains.php.PhpIndex;
 import com.jetbrains.php.lang.psi.PhpFile;
+import com.jetbrains.php.lang.psi.elements.ArrayIndex;
 import com.jetbrains.php.lang.psi.resolve.types.PhpType;
+import fr.adrienbrault.idea.symfony2plugin.util.PhpElementsUtil;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.HashMap;
@@ -11,8 +16,8 @@ import java.util.Map;
 
 final public class PhpTemplatingUtil {
 
-    private final static String SIGNATURE_RENDERER_FRAMEWORK = "\\Symfony\\Bundle\\FrameworkBundle\\Templating\\PhpEngine";
-    private final static String SIGNATURE_RENDERER_COMPONENT = "\\Symfony\\Component\\Templating\\PhpEngine";
+    public final static String SIGNATURE_RENDERER_FRAMEWORK = "\\Symfony\\Bundle\\FrameworkBundle\\Templating\\PhpEngine";
+    public final static String SIGNATURE_RENDERER_COMPONENT = "\\Symfony\\Component\\Templating\\PhpEngine";
     private final static String SIGNATURE_GLOBAL_VARS = "\\Symfony\\Bundle\\FrameworkBundle\\Templating\\GlobalVariables";
     private final static String SIGNATURE_FULLSTACK = "\\Symfony\\Bundle\\FullStack";
 
@@ -62,6 +67,14 @@ final public class PhpTemplatingUtil {
 
     public static Map<String, String> getHelpersMap() {
         return HELPERS;
+    }
+
+    @NotNull
+    public static ElementPattern<? extends PsiElement> getHelperAccessPattern() {
+        return PlatformPatterns.or(
+            PlatformPatterns.psiElement().withSuperParent(2, ArrayIndex.class),
+            PhpElementsUtil.getParameterInsideMethodReferencePattern()
+        );
     }
 
     public static Map<String, String> getTemplateVariablesForFile(@NotNull PhpFile file) {
