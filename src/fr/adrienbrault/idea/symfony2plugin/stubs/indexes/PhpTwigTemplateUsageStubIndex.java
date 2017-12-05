@@ -90,7 +90,7 @@ public class PhpTwigTemplateUsageStubIndex extends FileBasedIndexExtension<Strin
                         }
 
                         String contents = ((StringLiteralExpression) parameters[0]).getContents();
-                        if(StringUtils.isBlank(contents) || !contents.endsWith(".html.twig")) {
+                        if(StringUtils.isBlank(contents) || (!contents.endsWith(".html.twig") && !contents.endsWith(".html.php"))) {
                             return;
                         }
 
