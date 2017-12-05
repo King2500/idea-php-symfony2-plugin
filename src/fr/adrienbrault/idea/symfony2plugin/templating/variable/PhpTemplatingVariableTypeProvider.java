@@ -49,13 +49,15 @@ public class PhpTemplatingVariableTypeProvider implements PhpTypeProvider3 {
         }
 
         // class for $view, $app, ...
+        // TODO: avoid index access !!
         String varSignature = PhpTemplatingUtil.findSignatureForTemplateVariable(
             (PhpFile)variable.getContainingFile(),
             variable.getName()
         );
 
+        //String varSignature = variable.getName() + "~" + element.getContainingFile().
+
         if (varSignature != null) {
-            //return new PhpType().add("#C" + varSignature);
             return new PhpType().add("#" + this.getKey() + variable.getSignature() + TRIM_KEY + varSignature);
         }
 

@@ -1,19 +1,23 @@
 package fr.adrienbrault.idea.symfony2plugin.templating.variable;
 
 import com.intellij.codeInsight.completion.*;
+import com.intellij.codeInsight.lookup.LookupElementBuilder;
 import com.intellij.openapi.project.Project;
 import com.intellij.patterns.PlatformPatterns;
 import com.intellij.psi.PsiFile;
 import com.intellij.util.ProcessingContext;
 import com.jetbrains.php.PhpIcons;
+import com.jetbrains.php.PhpIndex;
 import com.jetbrains.php.completion.PhpLookupElement;
 import com.jetbrains.php.completion.insert.PhpVariableInsertHandler;
+import com.jetbrains.php.lang.psi.elements.PhpClass;
 import com.jetbrains.php.lang.psi.elements.Variable;
 import com.jetbrains.php.lang.psi.resolve.types.PhpType;
 import com.jetbrains.php.lang.psi.stubs.indexes.PhpVariableIndex;
 import fr.adrienbrault.idea.symfony2plugin.templating.util.PhpTemplatingUtil;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Collection;
 import java.util.Map;
 
 public class PhpTemplatingVariableCompletionContributor extends CompletionContributor {
@@ -35,6 +39,10 @@ public class PhpTemplatingVariableCompletionContributor extends CompletionContri
                 String varClass = variableEntry.getValue();
 
                 PhpType type = new PhpType().add(varClass);
+                Collection<PhpClass> phpClasses = PhpIndex.getInstance(project).getClassesByFQN(varClass);
+                if (phpClasses.size() > 0) {
+                    type = phpClasses.iterator().next().getType();
+                }
                 result.addElement(new PhpLookupElement(varName, PhpVariableIndex.KEY, PhpIcons.VARIABLE, type, project, PhpVariableInsertHandler.getInstance()));
             }
         }

@@ -8,13 +8,19 @@ import com.intellij.psi.PsiFile;
 import com.jetbrains.php.PhpIndex;
 import com.jetbrains.php.lang.psi.PhpFile;
 import com.jetbrains.php.lang.psi.elements.ArrayIndex;
+import com.jetbrains.php.lang.psi.elements.Function;
+import com.jetbrains.php.lang.psi.elements.Method;
 import com.jetbrains.php.lang.psi.resolve.types.PhpType;
+import fr.adrienbrault.idea.symfony2plugin.TwigHelper;
+import fr.adrienbrault.idea.symfony2plugin.templating.variable.dict.PsiVariable;
 import fr.adrienbrault.idea.symfony2plugin.util.PhpElementsUtil;
+import fr.adrienbrault.idea.symfony2plugin.util.SymfonyBundleUtil;
+import fr.adrienbrault.idea.symfony2plugin.util.dict.SymfonyBundle;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 final public class PhpTemplatingUtil {
 
@@ -93,6 +99,18 @@ final public class PhpTemplatingUtil {
             variables.putAll(VARIABLES_FRAMEWORK);
         }
 
+        // also check for custom template variables:  render(..., array('foo'=>$foo))
+//        for(Map.Entry<String, PsiVariable> templateVar: collectControllerTemplateVariables((PhpFile)file).entrySet()) {
+//            String varName = templateVar.getKey();
+//            String varClass = TwigTypeResolveUtil.getTypeDisplayName(project, templateVar.getValue().getTypes());
+//
+//            if (varClass.indexOf("\\") > 0) {
+//                // make FQN
+//                varClass = "\\" + varClass;
+//            }
+//            variables.put(varName, varClass);
+//        }
+
         return variables;
     }
 
@@ -122,5 +140,98 @@ final public class PhpTemplatingUtil {
         }
 
         return null;
+    }
+
+
+    /**
+     * Find a controller method which possibly rendered the template
+     *
+     * Foobar/Bar.html.php" => FoobarController::barAction
+     * Foobar/Bar.html.php" => FoobarController::bar
+     * Foobar.html.php" => FoobarController::__invoke
+     */
+    @NotNull
+    public static Collection<Method> findPhpFileController(@NotNull PhpFile phpFile) {
+
+        // TODO: Copied from TwigUtil.findTwigFileController. Maybe merge together?
+
+        SymfonyBundle symfonyBundle = new SymfonyBundleUtil(phpFile.getProject()).getContainingBundle(phpFile);
+        if(symfonyBundle == null) {
+            return Collections.emptyList();
+        }
+
+        String relativePath = symfonyBundle.getRelativePath(phpFile.getVirtualFile());
+        if(relativePath == null || !relativePath.startsWith("Resources/views/")) {
+            return Collections.emptyList();
+        }
+
+        String viewPath = relativePath.substring("Resources/views/".length());
+
+        String className = null;
+        Collection<String> methodNames = new ArrayList<>();
+
+        Matcher methodMatcher = Pattern.compile(".*/(\\w+)\\.\\w+\\.php").matcher(viewPath);
+        if(methodMatcher.find()) {
+            // Foobar/Bar.html.php" => FoobarController::barAction
+            // Foobar/Bar.html.php" => FoobarController::bar
+            methodNames.add(methodMatcher.group(1) + "Action");
+            methodNames.add(methodMatcher.group(1));
+
+            className = String.format(
+                    "%sController\\%sController",
+                    symfonyBundle.getNamespaceName(),
+                    viewPath.substring(0, viewPath.lastIndexOf("/")).replace("/", "\\")
+            );
+        } else {
+            // Foobar.html.php" => FoobarController::__invoke
+            Matcher invokeMatcher = Pattern.compile("^(\\w+)\\.\\w+\\.php").matcher(viewPath);
+            if(invokeMatcher.find()) {
+                className = String.format(
+                        "%sController\\%sController",
+                        symfonyBundle.getNamespaceName(),
+                        invokeMatcher.group(1)
+                );
+
+                methodNames.add("__invoke");
+            }
+        }
+
+        // found not valid template name pattern
+        if(className == null || methodNames.size() == 0) {
+            return Collections.emptyList();
+        }
+
+        // find multiple targets
+        Collection<Method> methods = new HashSet<>();
+        for (String methodName : methodNames) {
+            Method method = PhpElementsUtil.getClassMethod(phpFile.getProject(), className, methodName);
+            if(method != null) {
+                methods.add(method);
+            }
+        }
+
+        return methods;
+    }
+
+    public static Map<String, PsiVariable> collectControllerTemplateVariables(@NotNull PhpFile phpFile) {
+        Map<String, PsiVariable> vars = new HashMap<>();
+
+//        for (Method method : findPhpFileController(phpFile)) {
+//            vars.putAll(PhpMethodVariableResolveUtil.collectMethodVariables(method));
+//        }
+
+        for(Function methodIndex : getPhpFileMethodUsageOnIndex(phpFile)) {
+            vars.putAll(PhpMethodVariableResolveUtil.collectMethodVariables(methodIndex));
+        }
+
+        return vars;
+    }
+
+    /**
+     * Collect function variables scopes for given PHP template file
+     */
+    @NotNull
+    public static Set<Function> getPhpFileMethodUsageOnIndex(@NotNull PhpFile phpFile) {
+        return TwigUtil.getTwigFileMethodUsageOnIndex(phpFile.getProject(), TwigHelper.getTemplateNamesForFile(phpFile.getProject(), phpFile.getVirtualFile()));
     }
 }
