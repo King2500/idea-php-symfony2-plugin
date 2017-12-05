@@ -17,7 +17,7 @@ import java.util.Collections;
 import java.util.Set;
 
 public class PhpTemplatingVariableTypeProvider implements PhpTypeProvider3 {
-    private static char TRIM_KEY = '\u0192';
+    private final static char TRIM_KEY = '\u0192';
 
     @Override
     public char getKey() {

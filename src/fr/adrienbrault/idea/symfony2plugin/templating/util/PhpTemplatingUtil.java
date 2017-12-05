@@ -1,5 +1,6 @@
 package fr.adrienbrault.idea.symfony2plugin.templating.util;
 
+import com.intellij.openapi.project.Project;
 import com.intellij.patterns.ElementPattern;
 import com.intellij.patterns.PlatformPatterns;
 import com.intellij.psi.PsiElement;
@@ -11,6 +12,7 @@ import com.jetbrains.php.lang.psi.resolve.types.PhpType;
 import fr.adrienbrault.idea.symfony2plugin.util.PhpElementsUtil;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -77,15 +79,21 @@ final public class PhpTemplatingUtil {
         );
     }
 
-    public static Map<String, String> getTemplateVariablesForFile(@NotNull PhpFile file) {
-        // when using PhpEngine from FrameworkBundle
-        if (SIGNATURE_RENDERER_FRAMEWORK.equals(getPhpEngineClass(PhpIndex.getInstance(file.getProject())))) {
-            // add variable "app"
-            VARIABLES.putAll(VARIABLES_FRAMEWORK);
+    public static Map<String, String> getTemplateVariablesForFile(@NotNull PsiFile file) {
+        if (!isPhpTemplate(file)) {
+            return Collections.emptyMap();
         }
 
-        // TODO: also check for custom template variables:  render(..., array('foo'=>$foo))
-        return VARIABLES;
+        Project project = file.getProject();
+        Map<String, String> variables = new HashMap<>(VARIABLES);
+
+        // when using PhpEngine from FrameworkBundle
+        if (SIGNATURE_RENDERER_FRAMEWORK.equals(getPhpEngineClass(PhpIndex.getInstance(project)))) {
+            // add variable "app"
+            variables.putAll(VARIABLES_FRAMEWORK);
+        }
+
+        return variables;
     }
 
     public static String findSignatureForTemplateVariable(@NotNull PhpFile phpFile, @NotNull String variableName) {
