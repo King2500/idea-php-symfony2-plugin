@@ -4,18 +4,16 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.psi.PsiElement;
 import com.jetbrains.php.PhpIndex;
-import com.jetbrains.php.lang.psi.PhpPsiUtil;
 import com.jetbrains.php.lang.psi.elements.*;
 import com.jetbrains.php.lang.psi.resolve.types.PhpType;
 import com.jetbrains.php.lang.psi.resolve.types.PhpTypeProvider3;
-import fr.adrienbrault.idea.symfony2plugin.Settings;
+import fr.adrienbrault.idea.symfony2plugin.Symfony2ProjectComponent;
 import fr.adrienbrault.idea.symfony2plugin.templating.util.PhpTemplatingUtil;
 import fr.adrienbrault.idea.symfony2plugin.util.PhpElementsUtil;
 import fr.adrienbrault.idea.symfony2plugin.util.PhpTypeProviderUtil;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Collection;
-import java.util.List;
 import java.util.Set;
 
 public class PhpTemplatingHelperTypeProvider implements PhpTypeProvider3 {
@@ -29,7 +27,7 @@ public class PhpTemplatingHelperTypeProvider implements PhpTypeProvider3 {
     @Nullable
     @Override
     public PhpType getType(PsiElement element) {
-        if (!Settings.getInstance(element.getProject()).pluginEnabled) {
+        if (!Symfony2ProjectComponent.isEnabled(element)) {
             return null;
         }
 

@@ -14,6 +14,7 @@ import com.jetbrains.php.lang.psi.elements.PhpClass;
 import com.jetbrains.php.lang.psi.elements.Variable;
 import com.jetbrains.php.lang.psi.resolve.types.PhpType;
 import com.jetbrains.php.lang.psi.stubs.indexes.PhpVariableIndex;
+import fr.adrienbrault.idea.symfony2plugin.Symfony2ProjectComponent;
 import fr.adrienbrault.idea.symfony2plugin.templating.util.PhpTemplatingUtil;
 import org.jetbrains.annotations.NotNull;
 
@@ -29,6 +30,9 @@ public class PhpTemplatingVariableCompletionContributor extends CompletionContri
     private class PhpTemplatingVariableCompletionProvider extends CompletionProvider<CompletionParameters> {
         @Override
         protected void addCompletions(@NotNull CompletionParameters parameters, ProcessingContext context, @NotNull CompletionResultSet result) {
+            if(!Symfony2ProjectComponent.isEnabled(parameters.getPosition())) {
+                return;
+            }
             PsiFile file = parameters.getOriginalFile();
             Project project = parameters.getPosition().getProject();
 

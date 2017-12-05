@@ -9,6 +9,7 @@ import com.jetbrains.php.lang.psi.elements.PhpNamedElement;
 import com.jetbrains.php.lang.psi.elements.Variable;
 import com.jetbrains.php.lang.psi.resolve.types.PhpType;
 import com.jetbrains.php.lang.psi.resolve.types.PhpTypeProvider3;
+import fr.adrienbrault.idea.symfony2plugin.Symfony2ProjectComponent;
 import fr.adrienbrault.idea.symfony2plugin.templating.util.PhpTemplatingUtil;
 import org.jetbrains.annotations.Nullable;
 
@@ -27,6 +28,10 @@ public class PhpTemplatingVariableTypeProvider implements PhpTypeProvider3 {
     @Nullable
     @Override
     public PhpType getType(PsiElement element) {
+        if (!Symfony2ProjectComponent.isEnabled(element)) {
+            return null;
+        }
+
         if (!(element instanceof Variable)) {
             return null;
         }
