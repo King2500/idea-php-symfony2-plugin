@@ -174,6 +174,9 @@ public class PhpTypeProviderUtil {
 
         Collection<PhpNamedElement> elements = new ArrayList<>();
         for (String s : signature.split("\\|")) {
+            if (!s.contains("#")) {
+                continue;
+            }
             elements.addAll(phpIndex.getBySignature(s, null, 0));
         }
 
