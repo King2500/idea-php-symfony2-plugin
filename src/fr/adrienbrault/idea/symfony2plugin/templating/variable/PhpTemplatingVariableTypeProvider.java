@@ -3,24 +3,22 @@ package fr.adrienbrault.idea.symfony2plugin.templating.variable;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VfsUtil;
 import com.intellij.openapi.vfs.VirtualFile;
-import com.intellij.psi.PsiDirectory;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiManager;
 import com.intellij.psi.search.LocalSearchScope;
+import com.intellij.util.indexing.IndexingDataKeys;
 import com.jetbrains.php.PhpIndex;
 import com.jetbrains.php.lang.psi.PhpFile;
+import com.jetbrains.php.lang.psi.elements.PhpClass;
 import com.jetbrains.php.lang.psi.elements.PhpNamedElement;
 import com.jetbrains.php.lang.psi.elements.Variable;
 import com.jetbrains.php.lang.psi.resolve.types.PhpType;
 import com.jetbrains.php.lang.psi.resolve.types.PhpTypeProvider3;
 import fr.adrienbrault.idea.symfony2plugin.Symfony2ProjectComponent;
 import fr.adrienbrault.idea.symfony2plugin.templating.util.PhpTemplatingUtil;
-import fr.adrienbrault.idea.symfony2plugin.util.PsiElementUtils;
-import fr.adrienbrault.idea.symfony2plugin.util.VfsExUtil;
 import org.jetbrains.annotations.Nullable;
 
-import java.net.URL;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Set;
@@ -44,8 +42,10 @@ public class PhpTemplatingVariableTypeProvider implements PhpTypeProvider3 {
             return null;
         }
 
+        PsiFile psiFile = element.getContainingFile();
+
         // PHP templates
-        if (!PhpTemplatingUtil.isPhpTemplate(element.getContainingFile())) {
+        if (!PhpTemplatingUtil.isPhpTemplate(psiFile)) {
             return null;
         }
 
@@ -61,20 +61,14 @@ public class PhpTemplatingVariableTypeProvider implements PhpTypeProvider3 {
             return null;
         }
 
-        // class for $view, $app, ...
-        // TODO: avoid index access !!
-//        String varSignature = PhpTemplatingUtil.findSignatureForTemplateVariable(
-//            (PhpFile)variable.getContainingFile(),
-//            variable.getName()
-//        );
-//        if (varSignature != null) {
-//            return new PhpType().add("#" + this.getKey() + variable.getSignature() + TRIM_KEY + varSignature);
-//        }
+        VirtualFile virtualFile = psiFile.getOriginalFile().getVirtualFile();
 
-        //String varSignature = variable.getName() + "~" + element.getContainingFile().
+        if (virtualFile == null) {
+            virtualFile = psiFile.getUserData(IndexingDataKeys.VIRTUAL_FILE);
+        }
 
-        if (element.getContainingFile().getVirtualFile() != null) {
-            String varSignature = variable.getName() + "~" + element.getContainingFile().getVirtualFile().getUrl();
+        if (virtualFile != null) {
+            String varSignature = variable.getName() + "~" + virtualFile.getPath();
             return new PhpType().add("#" + this.getKey() + variable.getSignature() + TRIM_KEY + varSignature);
         }
 
@@ -90,8 +84,6 @@ public class PhpTemplatingVariableTypeProvider implements PhpTypeProvider3 {
         if(endIndex == -1) {
             return Collections.emptySet();
         }
-
-        //return PhpIndex.getInstance(project).getAnyByFQN(expression.substring(endIndex + 1));
         String parameter = expression.substring(endIndex + 1);
         PhpIndex phpIndex = PhpIndex.getInstance(project);
 
@@ -107,7 +99,8 @@ public class PhpTemplatingVariableTypeProvider implements PhpTypeProvider3 {
                 if (psiFile != null && psiFile instanceof PhpFile) {
                     String varSignature = PhpTemplatingUtil.findSignatureForTemplateVariable((PhpFile)psiFile, varName);
                     if (varSignature != null) {
-                        return phpIndex.getAnyByFQN(varSignature);
+                        Collection<PhpClass> result = phpIndex.getAnyByFQN(varSignature);
+                        return result;
                     }
                 }
             }
@@ -119,6 +112,4 @@ public class PhpTemplatingVariableTypeProvider implements PhpTypeProvider3 {
     private static boolean isLocalVariable(Variable variable) {
         return variable.getUseScope() instanceof LocalSearchScope;
     }
-
-
 }
