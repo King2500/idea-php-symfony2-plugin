@@ -7,13 +7,11 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
 import com.jetbrains.php.PhpIndex;
 import com.jetbrains.php.lang.psi.PhpFile;
-import com.jetbrains.php.lang.psi.elements.ArrayIndex;
-import com.jetbrains.php.lang.psi.elements.Function;
-import com.jetbrains.php.lang.psi.elements.Method;
+import com.jetbrains.php.lang.psi.elements.*;
 import com.jetbrains.php.lang.psi.resolve.types.PhpType;
-import fr.adrienbrault.idea.symfony2plugin.TwigHelper;
 import fr.adrienbrault.idea.symfony2plugin.templating.variable.dict.PsiVariable;
 import fr.adrienbrault.idea.symfony2plugin.util.PhpElementsUtil;
+import fr.adrienbrault.idea.symfony2plugin.util.PhpTypeProviderUtil;
 import fr.adrienbrault.idea.symfony2plugin.util.SymfonyBundleUtil;
 import fr.adrienbrault.idea.symfony2plugin.util.dict.SymfonyBundle;
 import org.jetbrains.annotations.NotNull;
@@ -58,9 +56,9 @@ final public class PhpTemplatingUtil {
             return false;
         }
         return file.getName().endsWith(".html.php");
-        // TODO: Also check file is in namespaced templates path ("views") or Symfony widget
     }
 
+    @NotNull
     public static String getPhpEngineClass(PhpIndex phpIndex) {
         if (phpIndex.getClassesByFQN(SIGNATURE_FULLSTACK).size() > 0) {
             return SIGNATURE_RENDERER_FRAMEWORK;
@@ -70,7 +68,27 @@ final public class PhpTemplatingUtil {
     }
 
     public static boolean isTypePhpEngine(@NotNull PhpType type, @NotNull PhpIndex phpIndex) {
-        return type.toString().contains(getPhpEngineClass(phpIndex));
+        String phpEngineClass = getPhpEngineClass(phpIndex);
+        String typeClass = type.toString();
+
+        if (!typeClass.contains("#")) {
+            return typeClass.equals(phpEngineClass);
+        }
+
+        Collection<? extends PhpNamedElement> phpNamedElementCollections = PhpTypeProviderUtil.getTypeSignature(phpIndex, type.toString());
+        if (phpNamedElementCollections.size() == 0) {
+            return false;
+        }
+
+        for (PhpNamedElement element : phpNamedElementCollections) {
+            if (element instanceof PhpClass) {
+                if (element.getFQN().equals(phpEngineClass)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     public static Map<String, String> getHelpersMap() {
@@ -100,16 +118,16 @@ final public class PhpTemplatingUtil {
         }
 
         // also check for custom template variables:  render(..., array('foo'=>$foo))
-//        for(Map.Entry<String, PsiVariable> templateVar: collectControllerTemplateVariables((PhpFile)file).entrySet()) {
-//            String varName = templateVar.getKey();
-//            String varClass = TwigTypeResolveUtil.getTypeDisplayName(project, templateVar.getValue().getTypes());
-//
-//            if (varClass.indexOf("\\") > 0) {
-//                // make FQN
-//                varClass = "\\" + varClass;
-//            }
-//            variables.put(varName, varClass);
-//        }
+        for(Map.Entry<String, PsiVariable> templateVar: collectControllerTemplateVariables((PhpFile)file).entrySet()) {
+            String varName = templateVar.getKey();
+            String varClass = TwigTypeResolveUtil.getTypeDisplayName(project, templateVar.getValue().getTypes());
+
+            if (varClass.indexOf("\\") > 0) {
+                // make FQN
+                varClass = "\\" + varClass;
+            }
+            variables.put(varName, varClass);
+        }
 
         return variables;
     }
@@ -141,7 +159,6 @@ final public class PhpTemplatingUtil {
 
         return null;
     }
-
 
     /**
      * Find a controller method which possibly rendered the template
@@ -232,6 +249,6 @@ final public class PhpTemplatingUtil {
      */
     @NotNull
     public static Set<Function> getPhpFileMethodUsageOnIndex(@NotNull PhpFile phpFile) {
-        return TwigUtil.getTwigFileMethodUsageOnIndex(phpFile.getProject(), TwigHelper.getTemplateNamesForFile(phpFile.getProject(), phpFile.getVirtualFile()));
+        return TwigUtil.getTwigFileMethodUsageOnIndex(phpFile.getProject(), TwigUtil.getTemplateNamesForFile(phpFile.getProject(), phpFile.getVirtualFile()));
     }
 }
