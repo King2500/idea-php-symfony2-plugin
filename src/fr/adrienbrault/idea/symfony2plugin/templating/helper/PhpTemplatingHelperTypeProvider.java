@@ -14,6 +14,7 @@ import fr.adrienbrault.idea.symfony2plugin.util.PhpTypeProviderUtil;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Set;
 
 public class PhpTemplatingHelperTypeProvider implements PhpTypeProvider3 {
@@ -33,34 +34,13 @@ public class PhpTemplatingHelperTypeProvider implements PhpTypeProvider3 {
 
         String helperName = null;
         String refSignature = "";
-        String refParams = "";
 
         // $view['helper']
         if (element instanceof ArrayAccessExpression) {
-//            if (!(element.getFirstChild() instanceof Variable)) {
-//                return null;
-//            }
-
-            // is $view of class PhpEngine
-//            if (!PhpTemplatingUtil.isTypePhpEngine(((Variable) element.getFirstChild()).getType(), PhpIndex.getInstance(element.getProject()))) {
-//                return null;
-//            }
-
-
-
             PhpPsiElement arrayAccess = ((ArrayAccessExpression)element).getValue();
             if (arrayAccess instanceof PhpReference) {
-                //subject = ((PhpReference)arrayAccess).getSignature();
                 String subject = ((PhpReference)arrayAccess).getType().toString();
-//                List<String> types = StringUtil.split(subject, "|");
-//                if (types.stream().anyMatch(PhpType::isPluralType)) {
-//                    PhpType type = new PhpType();
-//                    types.forEach(type::add);
-//                    return type.elementType();
-//                }
-
                 helperName = findArrayKey(element);
-                refParams = "~" + subject;
 
                 PhpType result = new PhpType();
                 String finalHelperName = helperName;
@@ -75,7 +55,7 @@ public class PhpTemplatingHelperTypeProvider implements PhpTypeProvider3 {
 
         // $view->get('helper')
         if (element instanceof MethodReference) {
-            if(!PhpElementsUtil.isMethodWithFirstString(element, "get")) {
+            if (!PhpElementsUtil.isMethodWithFirstString(element, "get")) {
                 return null;
             }
             MethodReference methodReference = (MethodReference) element;
@@ -105,7 +85,7 @@ public class PhpTemplatingHelperTypeProvider implements PhpTypeProvider3 {
         // get back our original call
         int endIndex = expression.lastIndexOf(TRIM_KEY);
         if(endIndex == -1) {
-            return null;
+            return Collections.emptySet();
         }
 
         String originalSignature = expression.substring(0, endIndex);
@@ -116,38 +96,46 @@ public class PhpTemplatingHelperTypeProvider implements PhpTypeProvider3 {
         // Method call
         if (!originalSignature.isEmpty()) {
             Collection<? extends PhpNamedElement> phpNamedElementCollections = PhpTypeProviderUtil.getTypeSignature(phpIndex, originalSignature);
-            if(phpNamedElementCollections.size() == 0) {
-                return null;
+            if (phpNamedElementCollections.size() == 0) {
+                return Collections.emptySet();
             }
 
             // get first matched item
             PhpNamedElement element = phpNamedElementCollections.iterator().next();
-            if(!(element instanceof Method)) {
-                return null;
+            if (!(element instanceof Method)) {
+                return Collections.emptySet();
             }
 
             // method "get" of PhpEngine
             if (!PhpElementsUtil.isMethodInstanceOf((Method)element, PhpTemplatingUtil.SIGNATURE_RENDERER_COMPONENT, "get")) {
-                return null;
+                return Collections.emptySet();
             }
         }
 
         // Array access
         int paramIndex = parameter.indexOf('~');
-        if (paramIndex != -1) {
+        if (paramIndex >= 0) {
+            // referenced class
             String refParam = parameter.substring(paramIndex + 1);
+
+            // helper name
             parameter = parameter.substring(0, paramIndex);
 
             Collection<? extends PhpNamedElement> phpNamedElementCollections = PhpTypeProviderUtil.getTypeSignature(phpIndex, refParam);
-            if(phpNamedElementCollections.size() == 0) {
-                return null;
+            if (phpNamedElementCollections.size() == 0) {
+                return Collections.emptySet();
             }
+
+            // check for PhpEngine class
             PhpNamedElement element = phpNamedElementCollections.iterator().next();
+            if (!PhpTemplatingUtil.isTypePhpEngine(element.getType(), phpIndex)) {
+                return Collections.emptySet();
+            }
         }
 
         String signature = PhpTemplatingUtil.findSignatureForHelper(parameter);
         if (signature == null) {
-            return null;
+            return Collections.emptySet();
         }
 
         return phpIndex.getAnyByFQN(signature);
