@@ -124,9 +124,7 @@
         <typeProvider3 implementation="fr.adrienbrault.idea.symfony2plugin.assistant.signature.MethodSignatureTypeProvider"/>
         <typeProvider3 implementation="fr.adrienbrault.idea.symfony2plugin.templating.variable.PhpTemplatingVariableTypeProvider"/>
         <typeProvider3 implementation="fr.adrienbrault.idea.symfony2plugin.templating.helper.PhpTemplatingHelperTypeProvider"/>
-
-        <!-- does not help yet. see WI-38953 -->
-        <!--<predefinedVariableProvider implementation="fr.adrienbrault.idea.symfony2plugin.templating.variable.PhpTemplatingVariableProvider" />-->
+        <predefinedVariableProvider implementation="fr.adrienbrault.idea.symfony2plugin.templating.variable.PhpTemplatingVariableProvider" />
     </extensions>
 
     <extensions defaultExtensionNs="com.intellij">
