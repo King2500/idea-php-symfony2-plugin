@@ -5,8 +5,10 @@ import com.intellij.patterns.ElementPattern;
 import com.intellij.patterns.PlatformPatterns;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
+import com.intellij.psi.util.PsiTreeUtil;
 import com.jetbrains.php.PhpIndex;
 import com.jetbrains.php.lang.psi.PhpFile;
+import com.jetbrains.php.lang.psi.PhpPsiUtil;
 import com.jetbrains.php.lang.psi.elements.*;
 import com.jetbrains.php.lang.psi.resolve.types.PhpType;
 import fr.adrienbrault.idea.symfony2plugin.templating.variable.dict.PsiVariable;
@@ -15,6 +17,7 @@ import fr.adrienbrault.idea.symfony2plugin.util.PhpTypeProviderUtil;
 import fr.adrienbrault.idea.symfony2plugin.util.SymfonyBundleUtil;
 import fr.adrienbrault.idea.symfony2plugin.util.dict.SymfonyBundle;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 import java.util.regex.Matcher;
@@ -26,14 +29,16 @@ final public class PhpTemplatingUtil {
     public final static String SIGNATURE_RENDERER_COMPONENT = "\\Symfony\\Component\\Templating\\PhpEngine";
     private final static String SIGNATURE_GLOBAL_VARS = "\\Symfony\\Bundle\\FrameworkBundle\\Templating\\GlobalVariables";
     private final static String SIGNATURE_FULLSTACK = "\\Symfony\\Bundle\\FullStack";
+    public final static String VARIABLE_VIEW = "view";
+    public final static String VARIABLE_APP = "app";
 
     private static Map<String, String> VARIABLES = new HashMap<String, String>() {{
-        put("view", SIGNATURE_RENDERER_COMPONENT);
+        put(VARIABLE_VIEW, SIGNATURE_RENDERER_COMPONENT);
     }};
 
     private static Map<String, String> VARIABLES_FRAMEWORK = new HashMap<String, String>() {{
-        put("view", SIGNATURE_RENDERER_FRAMEWORK);
-        put("app", SIGNATURE_GLOBAL_VARS);
+        put(VARIABLE_VIEW, SIGNATURE_RENDERER_FRAMEWORK);
+        put(VARIABLE_APP, SIGNATURE_GLOBAL_VARS);
     }};
 
     private static Map<String, String> HELPERS = new HashMap<String, String>() {{
@@ -244,11 +249,105 @@ final public class PhpTemplatingUtil {
         return vars;
     }
 
+    @Nullable
+    public static PsiElement getViewVariableTarget(@NotNull Project project) {
+        Method method = PhpElementsUtil.getClassMethod(project, SIGNATURE_RENDERER_COMPONENT, "evaluate");
+
+        if (method == null) {
+            return null;
+        }
+
+        // find $view = ...
+        for (PsiElement element : PhpPsiUtil.getChildren(method.getLastChild(), Statement.INSTANCEOF)) {
+            PsiElement assignment = element.getFirstChild();
+            if (assignment == null || !(assignment instanceof AssignmentExpression)) {
+                continue;
+            }
+            PsiElement varDecl = assignment.getFirstChild();
+            if (varDecl == null || !(varDecl instanceof Variable)) {
+                continue;
+            }
+            if (((Variable) varDecl).getName().equals(VARIABLE_VIEW)) {
+                return varDecl;
+            }
+        }
+        return null;
+    }
+
+    public static PsiElement getAppVariableTarget(@NotNull Project project) {
+        Method method = PhpElementsUtil.getClassMethod(project, SIGNATURE_RENDERER_FRAMEWORK, "__construct");
+
+        if (method == null) {
+            return null;
+        }
+
+        // find $this->addGlobal('app', ...)
+        for (MethodReference methodCall : PsiTreeUtil.findChildrenOfType(method.getLastChild(), MethodReference.class)) {
+            if (!"addGlobal".equals(methodCall.getName())) {
+                continue;
+            }
+
+            ParameterList params = PsiTreeUtil.findChildOfType(methodCall, ParameterList.class);
+            if (params == null) {
+                continue;
+            }
+
+            PsiElement stringParam = params.getFirstChild();
+            if (!(stringParam instanceof StringLiteralExpression)) {
+                continue;
+            }
+
+            // 'app'
+            StringLiteralExpression nameParameter = (StringLiteralExpression) stringParam;
+            if (VARIABLE_APP.equals(nameParameter.getContents())) {
+                return PsiTreeUtil.findChildOfType(params, Variable.class);
+            }
+        }
+
+        return null;
+    }
+
     /**
      * Collect function variables scopes for given PHP template file
      */
     @NotNull
     public static Set<Function> getPhpFileMethodUsageOnIndex(@NotNull PhpFile phpFile) {
         return TwigUtil.getTwigFileMethodUsageOnIndex(phpFile.getProject(), TwigUtil.getTemplateNamesForFile(phpFile.getProject(), phpFile.getVirtualFile()));
+    }
+
+    @NotNull
+    public static PsiElement[] getTemplateVariableTargets(@NotNull PhpFile phpFile, Variable variable) {
+        String varName = variable.getName();
+        Project project = phpFile.getProject();
+
+        if (varName.equals(PhpTemplatingUtil.VARIABLE_VIEW)) {
+            PsiElement target = PhpTemplatingUtil.getViewVariableTarget(project);
+            if (target == null) {
+                return new PsiElement[0];
+            }
+            return Collections.singleton(target).toArray(new PsiElement[0]);
+        }
+
+        if (varName.equals(PhpTemplatingUtil.VARIABLE_APP)) {
+            // when using PhpEngine from FrameworkBundle
+            if (SIGNATURE_RENDERER_FRAMEWORK.equals(getPhpEngineClass(PhpIndex.getInstance(project)))) {
+                PsiElement target = PhpTemplatingUtil.getAppVariableTarget(project);
+                if (target == null) {
+                    return new PsiElement[0];
+                }
+                return Collections.singleton(target).toArray(new PsiElement[0]);
+            }
+        }
+
+        for(Map.Entry<String, PsiVariable> templateVar: PhpTemplatingUtil.collectControllerTemplateVariables(phpFile).entrySet()) {
+            String templateVarName = templateVar.getKey();
+
+            if (templateVarName.equals(varName)) {
+                PsiElement target = templateVar.getValue().getElement();
+                return Collections.singleton(target).toArray(new PsiElement[0]);
+            }
+        }
+
+        return new PsiElement[0];
     }
 }

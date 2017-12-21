@@ -20,12 +20,12 @@ public class PhpTemplatingVariableGotoDeclarationHandler implements GotoDeclarat
     @Override
     public PsiElement[] getGotoDeclarationTargets(@Nullable PsiElement psiElement, int i, Editor editor) {
         if(!Symfony2ProjectComponent.isEnabled(psiElement)) {
-            return null;
+            return new PsiElement[0];
         }
 
         PsiFile psiFile = psiElement.getContainingFile();
         if (!PhpTemplatingUtil.isPhpTemplate(psiFile)) {
-            return null;
+            return new PsiElement[0];
         }
 
         PsiElement variable = psiElement.getContext();
@@ -33,21 +33,7 @@ public class PhpTemplatingVariableGotoDeclarationHandler implements GotoDeclarat
             return new PsiElement[0];
         }
 
-//        if (((Variable)variable).getName().equals("view")) {
-//            PsiElement target = PhpTemplatingUtil.getViewVariableTarget();
-//            return Collections.singleton(target).toArray(new PsiElement[0]);
-//        }
-
-        for(Map.Entry<String, PsiVariable> templateVar: PhpTemplatingUtil.collectControllerTemplateVariables((PhpFile)psiFile).entrySet()) {
-            String varName = templateVar.getKey();
-
-            if (((Variable)variable).getName().equals(varName)) {
-                PsiElement target = templateVar.getValue().getElement();
-                return Collections.singleton(target).toArray(new PsiElement[0]);
-            }
-        }
-
-        return new PsiElement[0];
+        return PhpTemplatingUtil.getTemplateVariableTargets((PhpFile)psiFile, (Variable)variable);
     }
 
     @Nullable
