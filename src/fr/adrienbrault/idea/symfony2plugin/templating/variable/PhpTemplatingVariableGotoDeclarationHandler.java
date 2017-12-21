@@ -9,11 +9,7 @@ import com.jetbrains.php.lang.psi.PhpFile;
 import com.jetbrains.php.lang.psi.elements.Variable;
 import fr.adrienbrault.idea.symfony2plugin.Symfony2ProjectComponent;
 import fr.adrienbrault.idea.symfony2plugin.templating.util.PhpTemplatingUtil;
-import fr.adrienbrault.idea.symfony2plugin.templating.variable.dict.PsiVariable;
 import org.jetbrains.annotations.Nullable;
-
-import java.util.Collections;
-import java.util.Map;
 
 public class PhpTemplatingVariableGotoDeclarationHandler implements GotoDeclarationHandler {
     @Nullable
