@@ -56,6 +56,12 @@ public class PhpTemplatingVariableCompletionContributorTest extends SymfonyLight
                 "$a = \"bla {$<caret>\";",
             "view"//, "foo", "dt"
         );
+
+        assertCompletionContains("dummy.html.php", "" +
+                "<?php\n" +
+                "$a = \"bla ${<caret>\";",
+            "view"//, "foo", "dt"
+        );
     }
 
     public void testVariableCompletionNotInsideFunction() {
