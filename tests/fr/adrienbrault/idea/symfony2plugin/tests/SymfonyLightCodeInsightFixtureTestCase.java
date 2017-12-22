@@ -341,6 +341,23 @@ public abstract class SymfonyLightCodeInsightFixtureTestCase extends LightCodeIn
         assertFalse(pattern.accepts(((PhpReference) psiElement).resolve()));
     }
 
+    public void assertPhpReferenceResolveTo(String filename, String configureByText, ElementPattern<?> pattern) {
+        myFixture.configureByText(filename, configureByText);
+        PsiElement psiElement = myFixture.getFile().findElementAt(myFixture.getCaretOffset());
+
+        psiElement = PsiTreeUtil.getParentOfType(psiElement, PhpReference.class);
+        if (psiElement == null) {
+            fail("Element is not PhpReference.");
+        }
+
+        PsiElement resolve = ((PhpReference) psiElement).resolve();
+        if(!pattern.accepts(resolve)) {
+            fail(String.format("failed pattern matches element of '%s'", resolve == null ? "null" : resolve.toString()));
+        }
+
+        assertTrue(pattern.accepts(resolve));
+    }
+
     public void assertPhpReferenceSignatureEquals(LanguageFileType languageFileType, String configureByText, String typeSignature) {
         PsiElement psiElement = assertGetPhpReference(languageFileType, configureByText);
         assertEquals(typeSignature, ((PhpReference) psiElement).getSignature());
