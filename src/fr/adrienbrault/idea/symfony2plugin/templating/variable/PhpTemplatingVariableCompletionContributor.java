@@ -1,10 +1,11 @@
 package fr.adrienbrault.idea.symfony2plugin.templating.variable;
 
 import com.intellij.codeInsight.completion.*;
-import com.intellij.codeInsight.lookup.LookupElementBuilder;
 import com.intellij.openapi.project.Project;
 import com.intellij.patterns.PlatformPatterns;
+import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
+import com.intellij.psi.search.LocalSearchScope;
 import com.intellij.util.ProcessingContext;
 import com.jetbrains.php.PhpIcons;
 import com.jetbrains.php.PhpIndex;
@@ -30,11 +31,16 @@ public class PhpTemplatingVariableCompletionContributor extends CompletionContri
     private class PhpTemplatingVariableCompletionProvider extends CompletionProvider<CompletionParameters> {
         @Override
         protected void addCompletions(@NotNull CompletionParameters parameters, ProcessingContext context, @NotNull CompletionResultSet result) {
-            if(!Symfony2ProjectComponent.isEnabled(parameters.getPosition())) {
+            PsiElement element = parameters.getPosition();
+            if (!Symfony2ProjectComponent.isEnabled(element)) {
                 return;
             }
+            if (isLocalVariable((Variable)element.getParent())) {
+                return;
+            }
+
             PsiFile file = parameters.getOriginalFile();
-            Project project = parameters.getPosition().getProject();
+            Project project = element.getProject();
 
             result = patchResultIfNeeded(result);
 
@@ -62,5 +68,9 @@ public class PhpTemplatingVariableCompletionContributor extends CompletionContri
         }
 
         return result;
+    }
+
+    private static boolean isLocalVariable(Variable variable) {
+        return variable.getUseScope() instanceof LocalSearchScope;
     }
 }

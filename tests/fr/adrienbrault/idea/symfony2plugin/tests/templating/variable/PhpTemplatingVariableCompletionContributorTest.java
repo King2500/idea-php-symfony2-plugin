@@ -22,6 +22,7 @@ public class PhpTemplatingVariableCompletionContributorTest extends SymfonyLight
 
     public void testVariableCompletion() {
         if(System.getenv("PHPSTORM_ENV") != null) return;
+
         assertCompletionContains("dummy.html.php", "" +
                 "<?php\n" +
                 "$<caret>",
@@ -29,9 +30,9 @@ public class PhpTemplatingVariableCompletionContributorTest extends SymfonyLight
         );
 
         assertCompletionNotContains("dummy.html.php", "" +
-                        "<?php\n" +
-                        "$<caret>",
-                "app"
+                "<?php\n" +
+                "$<caret>",
+            "app"
         );
     }
 
@@ -41,9 +42,31 @@ public class PhpTemplatingVariableCompletionContributorTest extends SymfonyLight
         myFixture.copyFileToProject("classesFullStack.php");
 
         assertCompletionContains("dummy.html.php", "" +
-                        "<?php\n" +
-                        "$<caret>",
-                "view", "app"//, "foo", "dt"
+                "<?php\n" +
+                "$<caret>",
+            "view", "app"//, "foo", "dt"
+        );
+    }
+
+    public void testVariableCompletionInsideString() {
+        if(System.getenv("PHPSTORM_ENV") != null) return;
+
+        assertCompletionContains("dummy.html.php", "" +
+                "<?php\n" +
+                "$a = \"bla {$<caret>\";",
+            "view"//, "foo", "dt"
+        );
+    }
+
+    public void testVariableCompletionNotInsideFunction() {
+        if(System.getenv("PHPSTORM_ENV") != null) return;
+
+        assertCompletionNotContains("dummy.html.php", "" +
+                "<?php\n" +
+                "function bar($foo) {\n" +
+                "  $<caret> \n" +
+                "}",
+            "view"//, "foo", "dt"
         );
     }
 }
