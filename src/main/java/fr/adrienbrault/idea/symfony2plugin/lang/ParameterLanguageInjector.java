@@ -70,12 +70,21 @@ public class ParameterLanguageInjector implements MultiHostInjector {
         new MethodParameterSignature("\\Psr\\Log\\Test\\TestLogger", "hasDebugThatMatches", 0),
     };
 
+    private static final MethodParameterSignature[] RESET_INJECTION_SIGNATURES = {
+        new MethodParameterSignature("\\Symfony\\Component\\Console\\Output\\OutputInterface", "write", 0),
+        new MethodParameterSignature("\\Symfony\\Component\\Console\\Output\\OutputInterface", "writeln", 0),
+        new MethodParameterSignature("\\Symfony\\Component\\Console\\Formatter\\OutputFormatter", "escape", 0),
+        new MethodParameterSignature("\\Symfony\\Component\\Console\\Formatter\\OutputFormatter", "escapeTrailingBackslash", 0),
+        new MethodParameterSignature("\\Symfony\\Component\\Console\\Formatter\\OutputFormatterInterface", "format", 0),
+    };
+
     private final MethodLanguageInjection[] LANGUAGE_INJECTIONS = {
         new MethodLanguageInjection(LANGUAGE_ID_CSS, "@media all { ", " }", CSS_SELECTOR_SIGNATURES),
         new MethodLanguageInjection(LANGUAGE_ID_XPATH, null, null, XPATH_SIGNATURES),
         new MethodLanguageInjection(LANGUAGE_ID_JSON, null, null, JSON_SIGNATURES),
         new MethodLanguageInjection(LANGUAGE_ID_DQL, null, null, DQL_SIGNATURES),
         new MethodLanguageInjection(LANGUAGE_ID_PHPREGEXP, null, null, PHPREGEXP_SIGNATURES),
+        new MethodLanguageInjection(LANGUAGE_ID_TEXT, null, null, RESET_INJECTION_SIGNATURES),
     };
 
     public static final String LANGUAGE_ID_CSS = "CSS";
@@ -83,6 +92,7 @@ public class ParameterLanguageInjector implements MultiHostInjector {
     public static final String LANGUAGE_ID_JSON = "JSON";
     public static final String LANGUAGE_ID_DQL = "DQL";
     public static final String LANGUAGE_ID_PHPREGEXP = "PhpRegExp";
+    public static final String LANGUAGE_ID_TEXT = "TEXT";
 
     private static final String DQL_VARIABLE_NAME = "dql";
 
@@ -138,6 +148,10 @@ public class ParameterLanguageInjector implements MultiHostInjector {
                     MethodMatcher.CallToSignature callToSignature = new MethodMatcher.CallToSignature(signature.getClassName(), signature.getMethodName());
                     MethodMatcher.MethodMatchParameter matchParameter = MethodMatcher.getMatchedSignatureWithDepth(psiNearestParameter, new MethodMatcher.CallToSignature[]{callToSignature}, signature.getParameterIndex());
                     if (matchParameter != null) {
+                        // Only "overwrite" language injection to "TEXT" when XML-like characters in literal
+                        if (LANGUAGE_ID_TEXT.equals(language.getID()) && !expr.getContents().contains("<")) {
+                            return;
+                        }
                         injectLanguage(registrar, expr, language, languageInjection);
                         return;
                     }
